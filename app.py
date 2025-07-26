@@ -1,4 +1,4 @@
-from smolagents import CodeAgent,DuckDuckGoSearchTool, HfApiModel,load_tool,tool
+from smolagents import CodeAgent,DuckDuckGoSearchTool,load_tool,tool ,HfApiModel
 import datetime
 import requests
 import pytz
@@ -9,14 +9,24 @@ from Gradio_UI import GradioUI
 
 # Below is an example of a tool that does nothing. Amaze us with your creativity !
 @tool
-def my_custom_tool(arg1:str, arg2:int)-> str: #it's import to specify the return type
-    #Keep this format for the description / args / args description but feel free to modify the tool
-    """A tool that does nothing yet 
+def artistInfo(artist:str)-> str:
+    """A tool that fetches information about an artist.
     Args:
-        arg1: the first argument
-        arg2: the second argument
+        artist: A string representing the name of the artist.
     """
-    return "What magic will you build ?"
+    try:
+        DuckDuckGoSearchTool.setup()
+        web_search_tool = DuckDuckGoSearchTool(max_results=5, rate_limit=2.0)
+        # FIX 1: Use an f-string to insert the artist's name
+        results = web_search_tool(f"{artist} artist information")
+        search_results = [result['title'] + ": " + result['body'] for result in results if 'title' in result and 'body' in result]
+        if not search_results:
+            return f"No information found for artist '{artist}'."
+        return f"Information about {artist}: {search_results[0]}"
+    except Exception as e:
+        return f"Error fetching information for artist '{artist}': {str(e)}"
+       
+    
 
 @tool
 def get_current_time_in_timezone(timezone: str) -> str:
@@ -55,7 +65,7 @@ with open("prompts.yaml", 'r') as stream:
     
 agent = CodeAgent(
     model=model,
-    tools=[final_answer], ## add your tools here (don't remove final answer)
+    tools=[final_answer, artistInfo, get_current_time_in_timezone],  ## add your tools here (don't remove final answer)
     max_steps=6,
     verbosity_level=1,
     grammar=None,
@@ -66,4 +76,4 @@ agent = CodeAgent(
 )
 
 
-GradioUI(agent).launch()
+    GradioUI(agent).launch()
